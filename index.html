@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Accounting Unlocked — Host</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0f1923; --surface: #1a2940; --surface2: #223354;
+  --blue: #185FA5; --blue2: #0C447C;
+  --green: #2d7a1f; --green2: #1e5414;
+  --red: #8b2020; --red2: #611515;
+  --gold: #a07010; --gold2: #7a5608;
+  --text: #e8edf4; --text2: #8fa3bc; --border: rgba(255,255,255,0.12);
+}
+body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+
+/* TOP BAR */
+.topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 16px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.topbar h1 { font-size: 18px; font-weight: 700; flex: 1; white-space: nowrap; }
+.topbar .badge { background: rgba(255,120,0,0.15); border: 1px solid rgba(255,120,0,0.4); color: #ffab40; font-size: 11px; padding: 3px 8px; border-radius: 20px; white-space: nowrap; }
+.topbar button { padding: 7px 14px; border-radius: 7px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-size: 13px; cursor: pointer; white-space: nowrap; }
+.topbar button:hover { background: #2e4166; }
+
+/* MAIN LAYOUT */
+.main { display: grid; grid-template-columns: 1fr 340px; gap: 0; min-height: calc(100vh - 49px); }
+
+/* BOARD PANEL */
+.board-panel { padding: 14px; overflow-y: auto; }
+.board-panel h2 { font-size: 15px; font-weight: 600; color: var(--text2); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+.board-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 16px; }
+.col-hdr { background: #042C53; color: #c8dff4; text-align: center; padding: 10px 6px; border-radius: 8px; font-size: 12px; font-weight: 600; min-height: 56px; display: flex; align-items: center; justify-content: center; line-height: 1.3; }
+.cell { background: var(--blue); color: #e8f2ff; border-radius: 8px; text-align: center; padding: 14px 4px; font-size: 18px; font-weight: 700; cursor: pointer; transition: background 0.15s, transform 0.1s; min-height: 54px; display: flex; align-items: center; justify-content: center; }
+.cell:hover { background: var(--blue2); transform: scale(1.03); }
+.cell.used { background: var(--surface); color: var(--text2); cursor: default; font-size: 12px; }
+.cell.used:hover { transform: none; background: var(--surface); }
+
+/* SCOREBOARD */
+.scoreboard-section { margin-top: 4px; }
+.score-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.score-chip { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 6px; text-align: center; cursor: pointer; transition: border-color 0.15s; }
+.score-chip:hover { border-color: var(--blue); }
+.score-chip .name { font-size: 11px; color: var(--text2); margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.score-chip .pts { font-size: 18px; font-weight: 700; }
+.score-chip .pts.neg { color: #e57373; }
+.score-chip.edit-active { border-color: #ffab40; }
+
+/* RIGHT PANEL */
+.right-panel { background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+
+/* QUESTION AREA */
+.q-area { flex: 1; padding: 16px; overflow-y: auto; }
+.q-area .idle-msg { text-align: center; color: var(--text2); padding: 40px 20px; font-size: 14px; line-height: 1.8; }
+.q-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.q-cat { font-size: 12px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; }
+.q-pts-badge { background: var(--blue); color: #e8f2ff; border-radius: 6px; padding: 4px 12px; font-size: 14px; font-weight: 700; }
+
+.q-text { background: var(--surface2); border-radius: 10px; padding: 16px; font-size: 15px; font-weight: 500; line-height: 1.6; margin-bottom: 12px; }
+
+.answer-box { background: rgba(45,122,31,0.15); border: 1.5px solid rgba(45,122,31,0.5); border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+.answer-box .ans-label { font-size: 11px; color: #6dbf57; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+.answer-box .ans-text { font-size: 14px; font-weight: 600; color: #a8e89a; line-height: 1.5; }
+
+/* DISPLAY CONTROLS */
+.display-controls { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+.btn-show { flex: 1; padding: 9px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; }
+.btn-show-q { background: var(--blue); color: #fff; }
+.btn-show-q:hover { background: var(--blue2); }
+.btn-show-q.active { background: #0a3460; border: 2px solid var(--blue); }
+.btn-reveal-a { background: var(--green); color: #fff; }
+.btn-reveal-a:hover { background: var(--green2); }
+.btn-reveal-a.active { background: #153d0d; border: 2px solid var(--green); }
+.btn-clear { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-clear:hover { background: #2e4166; }
+
+/* BUZZ PANEL */
+.buzz-panel { border-top: 1px solid var(--border); padding: 14px; }
+.buzz-notice { background: rgba(255,171,64,0.15); border: 1px solid rgba(255,171,64,0.5); border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+.buzz-notice .bname { font-size: 15px; font-weight: 700; color: #ffab40; flex: 1; }
+.buzz-notice .bdismiss { background: none; border: none; color: var(--text2); font-size: 18px; cursor: pointer; padding: 0 4px; }
+.buzz-notice.hidden { display: none; }
+
+.team-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 10px; }
+.team-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 7px 4px; font-size: 11px; font-weight: 600; cursor: pointer; text-align: center; transition: background 0.12s; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.team-btn:hover { background: #2e4166; }
+.team-btn.buzzed { background: rgba(255,171,64,0.2); border-color: #ffab40; color: #ffab40; }
+.team-btn.correct-mark { background: rgba(45,122,31,0.25); border-color: #6dbf57; color: #a8e89a; }
+.team-btn.wrong-mark { background: rgba(139,32,32,0.25); border-color: #e57373; color: #ffb3b3; }
+
+.judge-btns { display: flex; gap: 6px; }
+.btn-correct { flex: 1; padding: 11px; background: var(--green); color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; }
+.btn-correct:hover { background: var(--green2); }
+.btn-wrong { flex: 1; padding: 11px; background: var(--red); color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; }
+.btn-wrong:hover { background: var(--red2); }
+.btn-correct:disabled, .btn-wrong:disabled { opacity: 0.4; cursor: default; }
+
+.result-msg { text-align: center; font-size: 13px; padding: 8px; min-height: 28px; color: var(--text2); }
+.result-msg.good { color: #a8e89a; }
+.result-msg.bad { color: #ffb3b3; }
+
+/* SCORE EDIT MODAL */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 100; display: none; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; width: 320px; }
+.modal h3 { font-size: 16px; margin-bottom: 14px; }
+.modal label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 4px; }
+.modal input { width: 100%; padding: 8px 12px; border-radius: 7px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-size: 14px; margin-bottom: 12px; }
+.modal-btns { display: flex; gap: 8px; }
+.modal-btns button { flex: 1; padding: 9px; border-radius: 7px; border: none; font-size: 14px; cursor: pointer; }
+.btn-save { background: var(--blue); color: #fff; }
+.btn-cancel { background: var(--surface2); color: var(--text); border: 1px solid var(--border) !important; }
+
+/* NTFY status */
+.ntfy-status { font-size: 11px; color: var(--text2); padding: 6px 16px; background: var(--surface); border-top: 1px solid var(--border); display: flex; align-items: center; gap: 6px; }
+.ntfy-dot { width: 7px; height: 7px; border-radius: 50%; background: #888; display: inline-block; }
+.ntfy-dot.live { background: #6dbf57; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>🔓 Accounting Unlocked</h1>
+  <span class="badge">HOST VIEW — Answer visible only here</span>
+  <button onclick="window.open('display.html','display','width=1200,height=700')">📺 Open Display</button>
+  <button onclick="showQR()">📱 Student QR</button>
+  <button onclick="document.getElementById('sound-btn').onclick();" id="sound-btn" onclick="unlockAudio()">🔇 Enable Sound</button>
+  <button onclick="resetScores()">↺ Reset Scores</button>
+  <button onclick="newGame()">🆕 New Game</button>
+</div>
+
+<div class="main">
+  <!-- BOARD -->
+  <div class="board-panel">
+    <h2>Game Board</h2>
+    <div class="board-grid" id="board-grid"></div>
+    <div class="scoreboard-section">
+      <h2 style="margin-bottom:10px;">Scoreboard <span style="font-size:12px;font-weight:400;color:var(--text2);">(click to edit name/score)</span></h2>
+      <div class="score-grid" id="score-grid"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="q-area" id="q-area">
+      <div class="idle-msg">Click a question on the board<br>to load it here.<br><br>The answer will be shown<br>in green — only visible to you.</div>
+    </div>
+    <div class="buzz-panel">
+      <div class="buzz-notice hidden" id="buzz-notice">
+        <span class="buzz-icon">🔔</span>
+        <span class="bname" id="buzz-name">—</span>
+        <button class="bdismiss" onclick="clearBuzz()" title="Clear">✕</button>
+      </div>
+      <div class="team-grid" id="team-grid"></div>
+      <div class="judge-btns">
+        <button class="btn-correct" id="btn-correct" onclick="judgeAnswer(true)" disabled>✓ Correct</button>
+        <button class="btn-wrong" id="btn-wrong" onclick="judgeAnswer(false)" disabled>✗ Wrong</button>
+      </div>
+      <div class="result-msg" id="result-msg"></div>
+    </div>
+    <div class="ntfy-status">
+      <span class="ntfy-dot" id="ntfy-dot"></span>
+      <span id="ntfy-label">Connecting to buzzer service…</span>
+    </div>
+  </div>
+</div>
+
+<!-- Score Edit Modal -->
+<div class="modal-overlay" id="score-modal">
+  <div class="modal">
+    <h3>Edit Team</h3>
+    <label>Team Name</label>
+    <input id="edit-name" type="text" placeholder="Team name" />
+    <label>Score</label>
+    <input id="edit-score" type="number" placeholder="0" />
+    <div class="modal-btns">
+      <button class="btn-save" onclick="saveScoreEdit()">Save</button>
+      <button class="btn-cancel" style="border:1px solid var(--border);" onclick="closeScoreModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- QR Modal -->
+<div class="modal-overlay" id="qr-modal" onclick="this.classList.remove('open')">
+  <div class="modal" onclick="event.stopPropagation()" style="text-align:center;">
+    <h3>📱 Student Buzzer</h3>
+    <div id="qr-code" style="display:flex;justify-content:center;margin:12px 0;"></div>
+    <div id="qr-url" style="font-size:12px;color:var(--text2);word-break:break-all;margin-bottom:12px;"></div>
+    <button onclick="document.getElementById('qr-modal').classList.remove('open')" style="width:100%;padding:9px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;color:var(--text);cursor:pointer;">Close</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────────
+const NTFY_TOPIC = 'accountingunlocked-agilitay-room1';
+const NTFY_URL   = 'https://ntfy.sh/' + NTFY_TOPIC;
+
+// ── QUESTIONS ──────────────────────────────────────────────────────────────
+const QUESTIONS = [
+  {
+    title: "Accounting Basics",
+    qs: [
+      { q: "What are the three main financial statements?", a: "Balance Sheet, Income Statement, Statement of Cash Flows" },
+      { q: "In the accounting equation, Assets = Liabilities + what?", a: "Equity (Owner's Equity)" },
+      { q: "If a company buys equipment with cash, which two accounts are affected?", a: "Equipment increases, Cash decreases" },
+      { q: "What type of account normally has a debit balance: an asset or a liability?", a: "Asset" },
+      { q: "A company receives cash from a customer who previously owed money. What happens to Accounts Receivable?", a: "Accounts Receivable decreases" }
+    ]
+  },
+  {
+    title: "Debits & Credits",
+    qs: [
+      { q: "Which side of a T-account is the debit side?", a: "Left" },
+      { q: "Do debits increase or decrease assets?", a: "Increase" },
+      { q: "Do credits increase or decrease liabilities?", a: "Increase" },
+      { q: "What is the journal entry when a company pays $500 of rent in cash?", a: "Debit Rent Expense $500; Credit Cash $500" },
+      { q: "A company purchases $2,000 of supplies on account. What accounts are debited and credited?", a: "Debit Supplies $2,000; Credit Accounts Payable $2,000" }
+    ]
+  },
+  {
+    title: "Financial Statements",
+    qs: [
+      { q: "Which financial statement shows a company's revenues and expenses?", a: "Income Statement" },
+      { q: "Which financial statement shows what a company owns and owes at a specific point in time?", a: "Balance Sheet" },
+      { q: "If revenue increases while expenses stay the same, what happens to net income?", a: "Net income increases" },
+      { q: "Which financial statement explains changes in a company's cash balance?", a: "Statement of Cash Flows" },
+      { q: "If a company reports $100,000 in revenue and $70,000 in expenses, what is its net income?", a: "$30,000" }
+    ]
+  },
+  {
+    title: "Accounting Careers",
+    qs: [
+      { q: "What does CPA stand for?", a: "Certified Public Accountant" },
+      { q: "What type of accounting focuses on helping managers make business decisions?", a: "Managerial accounting" },
+      { q: "What type of accounting involves examining a company's financial records for accuracy?", a: "Auditing" },
+      { q: "What is the primary purpose of an audit?", a: "To provide assurance that financial statements are fairly presented / reliable" },
+      { q: "Name two industries where accountants can build careers.", a: "Any two: oil & gas, banking, consulting, healthcare, technology, government, manufacturing, entertainment, etc." }
+    ]
+  },
+  {
+    title: "Challenge Round",
+    qs: [
+      { q: "If Assets are $50,000 and Liabilities are $20,000, what is Equity?", a: "$30,000" },
+      { q: "A company pays $1,000 cash for insurance covering the next year. Is the $1,000 initially an expense or an asset?", a: "Asset (Prepaid Insurance)" },
+      { q: "A company earns $5,000 of revenue but hasn't received the cash yet. What account records the amount owed to the company?", a: "Accounts Receivable" },
+      { q: "If a company's liabilities increase by $10,000 and its assets increase by $10,000, what happens to equity?", a: "Equity stays the same" },
+      { q: "A company has $80,000 in assets and $30,000 in liabilities. During the year it earns $20,000 in revenue and has $12,000 in expenses. What is ending equity?", a: "$58,000 (Beginning equity $50,000 + Net income $8,000)" }
+    ]
+  }
+];
+const POINTS = [100, 200, 300, 400, 500];
+
+// ── STATE ─────────────────────────────────────────────────────────────────
+let teams = [];
+for (let i = 1; i <= 8; i++) teams.push({ key: 'G'+i, name: 'Team '+i, score: 0 });
+let usedCells = {};
+let currentQ = null;
+let buzzedTeam = null;
+let editingTeamIdx = null;
+let audioCtx = null;
+let displayMode = 'board'; // 'board' | 'question' | 'answer'
+
+// ── RENDER BOARD ──────────────────────────────────────────────────────────
+function renderBoard() {
+  // Board grid
+  const grid = document.getElementById('board-grid');
+  grid.innerHTML = '';
+  QUESTIONS.forEach(cat => {
+    const h = document.createElement('div');
+    h.className = 'col-hdr';
+    h.textContent = cat.title;
+    grid.appendChild(h);
+  });
+  POINTS.forEach((pts, qi) => {
+    QUESTIONS.forEach((cat, ci) => {
+      const key = ci + '-' + qi;
+      const cell = document.createElement('div');
+      if (usedCells[key]) {
+        cell.className = 'cell used';
+        cell.textContent = '✓';
+      } else {
+        cell.className = 'cell';
+        cell.textContent = '$' + pts;
+        cell.onclick = () => loadQuestion(ci, qi);
+      }
+      grid.appendChild(cell);
+    });
+  });
+
+  // Score grid
+  const sg = document.getElementById('score-grid');
+  sg.innerHTML = '';
+  teams.forEach((t, i) => {
+    const chip = document.createElement('div');
+    chip.className = 'score-chip';
+    chip.title = 'Click to edit name or score';
+    chip.innerHTML = `<div class="name">${t.name}</div><div class="pts${t.score < 0 ? ' neg' : ''}">${t.score >= 0 ? '' : ''}${t.score}</div>`;
+    chip.onclick = () => openScoreEdit(i);
+    sg.appendChild(chip);
+  });
+
+  // Team grid in right panel
+  renderTeamGrid();
+}
+
+function renderTeamGrid() {
+  const tg = document.getElementById('team-grid');
+  tg.innerHTML = '';
+  teams.forEach((t, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'team-btn';
+    if (buzzedTeam && buzzedTeam.key === t.key) btn.className += ' buzzed';
+    btn.textContent = t.name;
+    btn.title = t.name + ': ' + t.score + ' pts';
+    btn.onclick = () => selectTeam(i);
+    tg.appendChild(btn);
+  });
+}
+
+// ── LOAD QUESTION ─────────────────────────────────────────────────────────
+function loadQuestion(ci, qi) {
+  currentQ = { ci, qi, cat: QUESTIONS[ci].title, pts: POINTS[qi], q: QUESTIONS[ci].qs[qi].q, a: QUESTIONS[ci].qs[qi].a };
+  buzzedTeam = null;
+  document.getElementById('btn-correct').disabled = true;
+  document.getElementById('btn-wrong').disabled = true;
+  document.getElementById('result-msg').textContent = '';
+  document.getElementById('buzz-notice').classList.add('hidden');
+
+  const qa = document.getElementById('q-area');
+  qa.innerHTML = `
+    <div class="q-meta">
+      <span class="q-cat">${currentQ.cat}</span>
+      <span class="q-pts-badge">$${currentQ.pts}</span>
+    </div>
+    <div class="q-text">${currentQ.q}</div>
+    <div class="answer-box">
+      <div class="ans-label">✓ Answer (host only)</div>
+      <div class="ans-text">${currentQ.a}</div>
+    </div>
+    <div class="display-controls">
+      <button class="btn-show btn-show-q" id="btn-show-q" onclick="pushToDisplay('question')">📺 Show Question</button>
+      <button class="btn-show btn-reveal-a" id="btn-reveal-a" onclick="pushToDisplay('answer')">🔓 Reveal Answer</button>
+      <button class="btn-show btn-clear" onclick="clearDisplay()">✕ Clear</button>
+    </div>
+    <button onclick="markUsed()" style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;color:var(--text2);cursor:pointer;font-size:12px;margin-top:4px;">Mark Used &amp; Close</button>
+  `;
+  renderTeamGrid();
+  resetBuzzers();
+}
+
+function markUsed() {
+  if (currentQ) {
+    usedCells[currentQ.ci + '-' + currentQ.qi] = true;
+    currentQ = null;
+    buzzedTeam = null;
+  }
+  clearDisplay();
+  document.getElementById('q-area').innerHTML = '<div class="idle-msg">Click a question on the board<br>to load it here.<br><br>The answer will be shown<br>in green — only visible to you.</div>';
+  document.getElementById('result-msg').textContent = '';
+  document.getElementById('buzz-notice').classList.add('hidden');
+  document.getElementById('btn-correct').disabled = true;
+  document.getElementById('btn-wrong').disabled = true;
+  renderBoard();
+}
+
+// ── DISPLAY SYNC via ntfy ─────────────────────────────────────────────────
+function pushToDisplay(mode) {
+  if (!currentQ) return;
+  const payload = JSON.stringify({ mode, q: currentQ.q, a: currentQ.a, cat: currentQ.cat, pts: currentQ.pts });
+  fetch(NTFY_URL, {
+    method: 'POST',
+    body: 'DISPLAY:' + payload,
+    headers: { 'Content-Type': 'text/plain' }
+  }).catch(() => {});
+
+  // Update button styles
+  const bq = document.getElementById('btn-show-q');
+  const ba = document.getElementById('btn-reveal-a');
+  if (bq) { bq.className = 'btn-show btn-show-q' + (mode === 'question' ? ' active' : ''); }
+  if (ba) { ba.className = 'btn-show btn-reveal-a' + (mode === 'answer' ? ' active' : ''); }
+}
+
+function clearDisplay() {
+  fetch(NTFY_URL, {
+    method: 'POST',
+    body: 'DISPLAY:' + JSON.stringify({ mode: 'clear' }),
+    headers: { 'Content-Type': 'text/plain' }
+  }).catch(() => {});
+  displayMode = 'board';
+}
+
+// ── BUZZ HANDLING ─────────────────────────────────────────────────────────
+function handleBuzz(raw) {
+  // raw = "BUZZ:G3:Team Name"
+  const parts = raw.split(':');
+  const key = parts[1];
+  const name = parts[2] || key.replace('G', 'Team ');
+  if (buzzedTeam) return; // only first buzz counts
+
+  // Update stored team name if custom
+  const t = teams.find(t => t.key === key);
+  if (t && parts[2]) t.name = parts[2];
+
+  buzzedTeam = { key, name: t ? t.name : name };
+  playBuzzIn();
+
+  const notice = document.getElementById('buzz-notice');
+  notice.classList.remove('hidden');
+  document.getElementById('buzz-name').textContent = '🔔 ' + buzzedTeam.name + ' buzzed in!';
+
+  document.getElementById('btn-correct').disabled = false;
+  document.getElementById('btn-wrong').disabled = false;
+  renderTeamGrid();
+}
+
+function selectTeam(idx) {
+  const t = teams[idx];
+  buzzedTeam = { key: t.key, name: t.name };
+  const notice = document.getElementById('buzz-notice');
+  notice.classList.remove('hidden');
+  document.getElementById('buzz-name').textContent = '👆 ' + t.name + ' selected';
+  document.getElementById('btn-correct').disabled = false;
+  document.getElementById('btn-wrong').disabled = false;
+  resetBuzzers();
+  renderTeamGrid();
+}
+
+function clearBuzz() {
+  buzzedTeam = null;
+  document.getElementById('buzz-notice').classList.add('hidden');
+  document.getElementById('btn-correct').disabled = true;
+  document.getElementById('btn-wrong').disabled = true;
+  document.getElementById('result-msg').textContent = '';
+  resetBuzzers();
+  renderTeamGrid();
+}
+
+function judgeAnswer(correct) {
+  if (!buzzedTeam || !currentQ) return;
+  const t = teams.find(t => t.key === buzzedTeam.key);
+  const pts = currentQ.pts;
+  const delta = correct ? pts : -pts;
+  if (t) t.score += delta;
+
+  const msg = document.getElementById('result-msg');
+  msg.textContent = buzzedTeam.name + ': ' + (delta > 0 ? '+' : '') + delta + ' pts → ' + (t ? t.score : '?');
+  msg.className = 'result-msg ' + (correct ? 'good' : 'bad');
+
+  if (correct) {
+    playCorrect();
+    usedCells[currentQ.ci + '-' + currentQ.qi] = true;
+    pushToDisplay('answer');
+    setTimeout(markUsed, 1200);
+  } else {
+    playWrong();
+    buzzedTeam = null;
+    document.getElementById('buzz-notice').classList.add('hidden');
+    document.getElementById('btn-correct').disabled = true;
+    document.getElementById('btn-wrong').disabled = true;
+    resetBuzzers();
+  }
+  renderBoard();
+}
+
+// ── NTFY RESET ────────────────────────────────────────────────────────────
+function resetBuzzers() {
+  fetch(NTFY_URL, {
+    method: 'POST',
+    body: 'RESET',
+    headers: { 'Content-Type': 'text/plain' }
+  }).catch(() => {});
+}
+
+// ── SCORE EDIT ────────────────────────────────────────────────────────────
+function openScoreEdit(idx) {
+  editingTeamIdx = idx;
+  document.getElementById('edit-name').value = teams[idx].name;
+  document.getElementById('edit-score').value = teams[idx].score;
+  document.getElementById('score-modal').classList.add('open');
+}
+function closeScoreModal() { document.getElementById('score-modal').classList.remove('open'); editingTeamIdx = null; }
+function saveScoreEdit() {
+  if (editingTeamIdx === null) return;
+  teams[editingTeamIdx].name = document.getElementById('edit-name').value.trim() || teams[editingTeamIdx].name;
+  teams[editingTeamIdx].score = parseInt(document.getElementById('edit-score').value) || 0;
+  closeScoreModal();
+  renderBoard();
+}
+
+function resetScores() {
+  if (!confirm('Reset all scores to 0?')) return;
+  teams.forEach(t => t.score = 0);
+  renderBoard();
+}
+function newGame() {
+  if (!confirm('Start a new game? This will reset all scores and the board.')) return;
+  teams.forEach((t, i) => { t.score = 0; t.name = 'Team ' + (i+1); });
+  usedCells = {};
+  currentQ = null;
+  buzzedTeam = null;
+  document.getElementById('q-area').innerHTML = '<div class="idle-msg">Click a question on the board<br>to load it here.<br><br>The answer will be shown<br>in green — only visible to you.</div>';
+  document.getElementById('result-msg').textContent = '';
+  document.getElementById('buzz-notice').classList.add('hidden');
+  clearDisplay();
+  renderBoard();
+}
+
+// ── QR CODE ───────────────────────────────────────────────────────────────
+function showQR() {
+  const base = window.location.href.replace(/[^/]*$/, '');
+  const url = base + 'buzz.html';
+  document.getElementById('qr-url').textContent = url;
+  const qrDiv = document.getElementById('qr-code');
+  qrDiv.innerHTML = '';
+  new QRCode(qrDiv, { text: url, width: 180, height: 180, correctLevel: QRCode.CorrectLevel.M });
+  document.getElementById('qr-modal').classList.add('open');
+}
+
+// ── AUDIO ─────────────────────────────────────────────────────────────────
+function unlockAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  const buf = audioCtx.createBuffer(1, 1, 22050);
+  const src = audioCtx.createBufferSource();
+  src.buffer = buf; src.connect(audioCtx.destination); src.start();
+  const btn = document.getElementById('sound-btn');
+  btn.textContent = '🔊 Sound On';
+  btn.style.background = 'rgba(109,191,87,0.2)';
+}
+function getCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function playCorrect() {
+  try {
+    const ctx = getCtx();
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.5, ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+    g.connect(ctx.destination);
+    [[523,0],[659,0.1],[784,0.2],[1047,0.3]].forEach(([f,t]) => { const o = ctx.createOscillator(); o.type='sine'; o.frequency.value=f; o.connect(g); o.start(ctx.currentTime+t); o.stop(ctx.currentTime+t+0.25); });
+  } catch(_) {}
+}
+function playWrong() {
+  try {
+    const ctx = getCtx();
+    const o = ctx.createOscillator(); const g = ctx.createGain();
+    o.type = 'sawtooth'; o.frequency.setValueAtTime(300, ctx.currentTime); o.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.5);
+    g.gain.setValueAtTime(0.4, ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(); o.stop(ctx.currentTime + 0.5);
+  } catch(_) {}
+}
+function playBuzzIn() {
+  try {
+    const ctx = getCtx();
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.5, ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+    g.connect(ctx.destination);
+    [880, 1100].forEach((f, i) => { const o = ctx.createOscillator(); o.type='square'; o.frequency.value=f; o.connect(g); o.start(ctx.currentTime+i*0.1); o.stop(ctx.currentTime+i*0.1+0.15); });
+  } catch(_) {}
+}
+
+// ── NTFY SSE LISTENER ─────────────────────────────────────────────────────
+function connectNtfy() {
+  const es = new EventSource(NTFY_URL + '/sse');
+  es.onopen = () => {
+    document.getElementById('ntfy-dot').className = 'ntfy-dot live';
+    document.getElementById('ntfy-label').textContent = 'Buzzer service live';
+  };
+  es.onmessage = (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      const msg = (data.message || '').trim();
+      if (msg.startsWith('BUZZ:')) handleBuzz(msg);
+    } catch(_) {}
+  };
+  es.onerror = () => {
+    document.getElementById('ntfy-dot').className = 'ntfy-dot';
+    document.getElementById('ntfy-label').textContent = 'Reconnecting…';
+    es.close(); setTimeout(connectNtfy, 4000);
+  };
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+renderBoard();
+connectNtfy();
+</script>
+</body>
+</html>

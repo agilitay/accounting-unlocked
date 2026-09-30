@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Accounting Unlocked — Buzzer</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0a1628; color: #fff;
+  min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 1.5rem; text-align: center; user-select: none; }
+#setup { width: 100%; max-width: 360px; }
+#setup h1 { font-size: 26px; font-weight: 800; margin-bottom: 0.3rem; }
+#setup .sub { font-size: 14px; color: rgba(255,255,255,0.45); margin-bottom: 1.5rem; }
+select, input { width: 100%; padding: 12px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.1); color: #fff; font-size: 16px; margin-bottom: 1rem; }
+select option { background: #1a2a40; }
+input::placeholder { color: rgba(255,255,255,0.3); }
+.btn-join { width: 100%; padding: 14px; background: #185FA5; color: #fff; border: none;
+  border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; }
+.btn-join:hover { background: #0C447C; }
+#buzzer { display: none; flex-direction: column; align-items: center; gap: 1.5rem; width: 100%; max-width: 360px; }
+.team-display { font-size: 28px; font-weight: 800; }
+.buzz-btn { width: 210px; height: 210px; border-radius: 50%;
+  background: #185FA5; border: 6px solid rgba(255,255,255,0.2);
+  color: #fff; font-size: 24px; font-weight: 900; letter-spacing: 1px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 6px; transition: transform 0.1s, background 0.15s;
+  -webkit-tap-highlight-color: transparent; box-shadow: 0 6px 30px rgba(24,95,165,0.55); }
+.buzz-btn:active { transform: scale(0.91); }
+.buzz-btn.success { background: #2d7a1f; }
+.buzz-btn.locked { background: #444; cursor: default; box-shadow: none; }
+.buzz-icon { font-size: 36px; }
+.status-msg { font-size: 14px; color: rgba(255,255,255,0.55); min-height: 22px; }
+.status-msg.good { color: #81c784; }
+.status-msg.bad { color: #e57373; }
+</style>
+</head>
+<body>
+
+<div id="setup">
+  <h1>🔓 Buzz In!</h1>
+  <p class="sub">Accounting Unlocked</p>
+  <select id="team-select" onchange="syncName()">
+    <option value="">-- Select your team --</option>
+    <option value="G1">Team 1</option><option value="G2">Team 2</option>
+    <option value="G3">Team 3</option><option value="G4">Team 4</option>
+    <option value="G5">Team 5</option><option value="G6">Team 6</option>
+    <option value="G7">Team 7</option><option value="G8">Team 8</option>
+  </select>
+  <p style="font-size:12px;color:rgba(255,255,255,0.35);margin:-0.5rem 0 0.5rem;">Optional: enter a custom team name</p>
+  <input id="team-name" placeholder="e.g. The Balancers" />
+  <button class="btn-join" onclick="joinGame()">Join Game</button>
+</div>
+
+<div id="buzzer">
+  <div class="team-display" id="team-display"></div>
+  <button class="buzz-btn" id="buzz-btn" onclick="buzz()">
+    <span class="buzz-icon">🔔</span>
+    <span>BUZZ!</span>
+  </button>
+  <div class="status-msg" id="status-msg">Ready — tap to buzz in!</div>
+</div>
+
+<script>
+const NTFY_TOPIC = 'accountingunlocked-agilitay-room1';
+const NTFY_URL   = 'https://ntfy.sh/' + NTFY_TOPIC;
+
+let myGroup = '';
+let myName = '';
+let locked = false;
+let lastResetId = null;
+
+function syncName() {
+  const sel = document.getElementById('team-select').value;
+  const inp = document.getElementById('team-name');
+  if (sel && !inp.value) inp.placeholder = sel.replace('G', 'Team ');
+}
+
+function joinGame() {
+  const sel = document.getElementById('team-select').value;
+  if (!sel) { alert('Please select your team number.'); return; }
+  const custom = document.getElementById('team-name').value.trim();
+  myGroup = sel;
+  myName  = custom || sel.replace('G', 'Team ');
+  document.getElementById('setup').style.display = 'none';
+  const buz = document.getElementById('buzzer');
+  buz.style.display = 'flex';
+  document.getElementById('team-display').textContent = myName;
+  startResetListener();
+}
+
+function startResetListener() {
+  function connectSSE() {
+    const es = new EventSource(NTFY_URL + '/sse');
+    es.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        const msg = (data.message || '').trim();
+        if (msg === 'RESET') unlockBuzzer();
+      } catch(_) {}
+    };
+    es.onerror = () => { es.close(); setTimeout(connectSSE, 3000); };
+  }
+  connectSSE();
+
+  // Polling fallback every 2 s
+  setInterval(async () => {
+    if (!locked) return;
+    try {
+      const res = await fetch(NTFY_URL + '/json?poll=1&since=10s', { cache: 'no-store' });
+      const text = await res.text();
+      for (const line of text.trim().split('\n').filter(Boolean)) {
+        try {
+          const obj = JSON.parse(line);
+          if (obj.message === 'RESET' && obj.id !== lastResetId) {
+            lastResetId = obj.id;
+            unlockBuzzer();
+          }
+        } catch(_) {}
+      }
+    } catch(_) {}
+  }, 2000);
+}
+
+function unlockBuzzer() {
+  locked = false;
+  const btn = document.getElementById('buzz-btn');
+  btn.className = 'buzz-btn';
+  const msg = document.getElementById('status-msg');
+  msg.textContent = 'Ready — tap to buzz in!';
+  msg.className = 'status-msg';
+}
+
+async function buzz() {
+  if (locked) return;
+  locked = true;
+  const btn = document.getElementById('buzz-btn');
+  const msg = document.getElementById('status-msg');
+  btn.className = 'buzz-btn success';
+  msg.textContent = 'Sending…';
+
+  try {
+    const res = await fetch(NTFY_URL, {
+      method: 'POST',
+      body: 'BUZZ:' + myGroup + ':' + myName,
+      headers: { 'Content-Type': 'text/plain' }
+    });
+    if (res.ok) {
+      msg.textContent = '✓ Buzzed in!';
+      msg.className = 'status-msg good';
+      btn.className = 'buzz-btn locked';
+      setTimeout(() => {
+        if (locked) { msg.textContent = 'Waiting for host…'; msg.className = 'status-msg'; }
+      }, 1500);
+    } else { throw new Error('Server ' + res.status); }
+  } catch(e) {
+    msg.textContent = 'Error — try again';
+    msg.className = 'status-msg bad';
+    locked = false;
+    btn.className = 'buzz-btn';
+  }
+}
+</script>
+</body>
+</html>
