@@ -491,6 +491,12 @@ function saveScoreEdit() {
 function resetScores() {
   if (!confirm('Reset all scores to 0?')) return;
   teams.forEach(t => t.score = 0);
+  buzzedTeam = null;
+  document.getElementById('buzz-notice').classList.add('hidden');
+  document.getElementById('btn-correct').disabled = true;
+  document.getElementById('btn-wrong').disabled = true;
+  document.getElementById('result-msg').textContent = '';
+  resetBuzzers();
   renderBoard();
 }
 function newGame() {
@@ -502,7 +508,10 @@ function newGame() {
   document.getElementById('q-area').innerHTML = '<div class="idle-msg">Click a question on the board<br>to load it here.<br><br>The answer will be shown<br>in green — only visible to you.</div>';
   document.getElementById('result-msg').textContent = '';
   document.getElementById('buzz-notice').classList.add('hidden');
+  document.getElementById('btn-correct').disabled = true;
+  document.getElementById('btn-wrong').disabled = true;
   clearDisplay();
+  resetBuzzers();
   renderBoard();
 }
 
