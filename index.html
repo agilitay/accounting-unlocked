@@ -362,20 +362,13 @@ function markUsed() {
   document.getElementById('btn-correct').disabled = true;
   document.getElementById('btn-wrong').disabled = true;
   renderBoard();
+  pushBoardState();
 }
 
 // ── DISPLAY SYNC via ntfy ─────────────────────────────────────────────────
-function boardSnap() {
-  // Current board state bundled into every outgoing DISPLAY message
-  return { used: usedCells, teams: teams.map(t => ({ name: t.name, score: t.score })) };
-}
-
 function pushToDisplay(mode) {
   if (!currentQ) return;
-  const payload = JSON.stringify(Object.assign(
-    { mode, q: currentQ.q, a: currentQ.a, cat: currentQ.cat, pts: currentQ.pts },
-    boardSnap()
-  ));
+  const payload = JSON.stringify({ mode, q: currentQ.q, a: currentQ.a, cat: currentQ.cat, pts: currentQ.pts });
   fetch(NTFY_URL, {
     method: 'POST',
     body: 'DISPLAY:' + payload,
@@ -390,22 +383,19 @@ function pushToDisplay(mode) {
 }
 
 function clearDisplay() {
-  // Embed board state so display refreshes board when it returns to board view
-  const payload = JSON.stringify(Object.assign({ mode: 'clear' }, boardSnap()));
   fetch(NTFY_URL, {
     method: 'POST',
-    body: 'DISPLAY:' + payload,
+    body: 'DISPLAY:' + JSON.stringify({ mode: 'clear' }),
     headers: { 'Content-Type': 'text/plain' }
   }).catch(() => {});
   displayMode = 'board';
 }
 
 function pushBoardState() {
-  // Used for score-only updates (no active question on display)
-  const payload = JSON.stringify(Object.assign({ mode: 'board' }, boardSnap()));
+  const payload = JSON.stringify({ used: usedCells, teams: teams.map(t => ({ name: t.name, score: t.score })) });
   fetch(NTFY_URL, {
     method: 'POST',
-    body: 'DISPLAY:' + payload,
+    body: 'BOARD:' + payload,
     headers: { 'Content-Type': 'text/plain' }
   }).catch(() => {});
 }
@@ -479,6 +469,7 @@ function judgeAnswer(correct) {
     document.getElementById('btn-correct').disabled = true;
     document.getElementById('btn-wrong').disabled = true;
     resetBuzzers();
+    pushBoardState();
   }
   renderBoard();
 }
@@ -519,6 +510,7 @@ function resetScores() {
   document.getElementById('result-msg').textContent = '';
   resetBuzzers();
   renderBoard();
+  pushBoardState();
 }
 function newGame() {
   if (!confirm('Start a new game? This will reset all scores and the board.')) return;
@@ -534,6 +526,7 @@ function newGame() {
   clearDisplay();
   resetBuzzers();
   renderBoard();
+  pushBoardState();
 }
 
 // ── QR CODE ───────────────────────────────────────────────────────────────

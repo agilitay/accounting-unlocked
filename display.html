@@ -11,13 +11,13 @@ body { background: var(--bg); color: #e8edf4; font-family: 'Segoe UI', system-ui
   height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
 
 /* ── BOARD SCREEN ── */
-#board-screen { display: flex; flex-direction: column; height: 100%; padding: 16px 20px 12px; gap: 10px; position: relative; }
+#board-screen { flex: 1; display: flex; flex-direction: column; padding: 16px 20px 12px; gap: 10px; position: relative; }
 .board-title { text-align: center; font-size: 32px; font-weight: 900; letter-spacing: 0.04em;
   color: #e8f2ff; text-shadow: 0 0 30px rgba(24,95,165,0.55); flex-shrink: 0; }
 .board-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 7px; flex: 1; min-height: 0; }
 .col-hdr { background: #042C53; color: #c8dff4; text-align: center; padding: 10px 6px;
-  border-radius: 10px; font-size: 14px; font-weight: 700; display: flex; align-items: center;
-  justify-content: center; line-height: 1.3; }
+  border-radius: 10px; font-size: 14px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; line-height: 1.3; }
 .cell { border-radius: 10px; text-align: center; font-size: 30px; font-weight: 800;
   display: flex; align-items: center; justify-content: center; }
 .cell.avail { background: var(--blue); color: #e8f2ff; text-shadow: 0 2px 6px rgba(0,0,0,0.35); }
@@ -32,12 +32,12 @@ body { background: var(--bg); color: #e8edf4; font-family: 'Segoe UI', system-ui
 .sc-pts { font-size: 20px; font-weight: 800; }
 .sc-pts.neg { color: #e57373; }
 
-/* QR watermark bottom-right of board */
+/* QR watermark */
 .qr-corner { position: absolute; bottom: 54px; right: 14px;
   display: flex; flex-direction: column; align-items: center; gap: 3px; opacity: 0.65; }
 .qr-corner canvas, .qr-corner img { border-radius: 6px; }
 .qr-corner-label { font-size: 11px; color: rgba(255,255,255,0.5); }
-.qr-corner-url   { font-size: 9px;  color: rgba(255,255,255,0.3); letter-spacing: 0.01em; }
+.qr-corner-url   { font-size: 9px;  color: rgba(255,255,255,0.3); }
 
 /* ── QUESTION SCREEN ── */
 #question-screen { display: none; flex-direction: column; height: 100%; padding: 40px 60px; }
@@ -48,12 +48,10 @@ body { background: var(--bg); color: #e8edf4; font-family: 'Segoe UI', system-ui
 .q-body { flex: 1; display: flex; flex-direction: column; justify-content: center; }
 .q-text { font-size: 42px; font-weight: 700; line-height: 1.4; text-align: center;
   color: #ffffff; text-shadow: 0 2px 8px rgba(0,0,0,0.4); padding: 0 20px; }
-
-/* answer reveal */
 .answer-reveal { margin-top: 40px; background: rgba(45,122,31,0.2);
   border: 2px solid rgba(45,122,31,0.6); border-radius: 16px; padding: 24px 36px;
   text-align: center; animation: slideUp 0.4s ease; display: none; }
-@keyframes slideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+@keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
 .ans-label { font-size: 16px; color: #6dbf57; text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 10px; }
 .ans-text  { font-size: 36px; font-weight: 700; color: #a8e89a; line-height: 1.4; }
 
@@ -63,9 +61,9 @@ body { background: var(--bg); color: #e8edf4; font-family: 'Segoe UI', system-ui
   padding: 16px 40px; display: flex; align-items: center; gap: 16px;
   transform: translateY(100%); transition: transform 0.35s ease; }
 #buzz-banner.visible { transform: translateY(0); }
-#buzz-banner .bicon { font-size: 32px; animation: ring 0.5s ease; }
+.bicon { font-size: 32px; animation: ring 0.5s ease; }
 @keyframes ring { 0%,100%{transform:rotate(0)} 20%{transform:rotate(-20deg)} 60%{transform:rotate(20deg)} }
-#buzz-banner .btext { font-size: 28px; font-weight: 800; color: var(--gold); }
+.btext { font-size: 28px; font-weight: 800; color: var(--gold); }
 </style>
 </head>
 <body>
@@ -108,14 +106,7 @@ body { background: var(--bg); color: #e8edf4; font-family: 'Segoe UI', system-ui
 const NTFY_TOPIC = 'accountingunlocked-agilitay-room1';
 const NTFY_URL   = 'https://ntfy.sh/' + NTFY_TOPIC;
 
-// Questions (display only needs titles — no answers shown here)
-const QUESTIONS = [
-  { title: "Accounting Basics" },
-  { title: "Debits & Credits" },
-  { title: "Financial Statements" },
-  { title: "Accounting Careers" },
-  { title: "Challenge Round" }
-];
+const CATEGORIES = ["Accounting Basics","Debits & Credits","Financial Statements","Accounting Careers","Challenge Round"];
 const POINTS = [100, 200, 300, 400, 500];
 
 let usedCells = {};
@@ -123,24 +114,20 @@ let teams = [];
 for (let i = 1; i <= 8; i++) teams.push({ name: 'Team ' + i, score: 0 });
 let buzzTimeout = null;
 
-// ── BOARD RENDER ──────────────────────────────────────────────────────────
+// ── BOARD RENDER ─────────────────────────────────────────────────────────
 function renderBoard() {
   const grid = document.getElementById('board-grid');
   grid.innerHTML = '';
-
-  // Category headers
-  QUESTIONS.forEach(cat => {
+  CATEGORIES.forEach(title => {
     const h = document.createElement('div');
     h.className = 'col-hdr';
-    h.textContent = cat.title;
+    h.textContent = title;
     grid.appendChild(h);
   });
-
-  // Value cells
   POINTS.forEach((pts, qi) => {
-    QUESTIONS.forEach((_, ci) => {
-      const key = ci + '-' + qi;
+    CATEGORIES.forEach((_, ci) => {
       const cell = document.createElement('div');
+      const key = ci + '-' + qi;
       if (usedCells[key]) {
         cell.className = 'cell used';
         cell.textContent = '✓';
@@ -151,8 +138,6 @@ function renderBoard() {
       grid.appendChild(cell);
     });
   });
-
-  // Scores
   const sr = document.getElementById('score-row');
   sr.innerHTML = '';
   teams.forEach(t => {
@@ -160,28 +145,18 @@ function renderBoard() {
     chip.className = 'score-chip';
     const neg = t.score < 0;
     chip.innerHTML = `<div class="sc-name">${t.name}</div>
-      <div class="sc-pts${neg ? ' neg' : ''}">${neg ? '-$' : '$'}${Math.abs(t.score).toLocaleString()}</div>`;
+      <div class="sc-pts${neg?' neg':''}">${neg?'-$':'$'}${Math.abs(t.score).toLocaleString()}</div>`;
     sr.appendChild(chip);
   });
 }
 
 // ── SCREEN SWITCHING ─────────────────────────────────────────────────────
-function applyBoardSnap(data) {
-  // Extract board state bundled inside any DISPLAY message
-  if (data.used !== undefined) usedCells = data.used;
-  if (data.teams && data.teams.length) teams = data.teams;
-  renderBoard();
-}
-
 function show(mode, data) {
-  // Always refresh board state if the payload carries it
-  applyBoardSnap(data);
-
   const bscreen = document.getElementById('board-screen');
   const qscreen = document.getElementById('question-screen');
   const ansDiv  = document.getElementById('answer-reveal');
 
-  if (mode === 'clear' || mode === 'board') {
+  if (mode === 'clear') {
     bscreen.style.display = 'flex';
     qscreen.style.display = 'none';
     ansDiv.style.display  = 'none';
@@ -209,7 +184,6 @@ function showBuzz(name) {
   document.getElementById('buzz-banner').classList.add('visible');
   buzzTimeout = setTimeout(clearBuzzBanner, 6000);
 }
-
 function clearBuzzBanner() {
   if (buzzTimeout) clearTimeout(buzzTimeout);
   document.getElementById('buzz-banner').classList.remove('visible');
@@ -226,10 +200,14 @@ function connectNtfy() {
       if (msg.startsWith('DISPLAY:')) {
         const payload = JSON.parse(msg.slice(8));
         show(payload.mode, payload);
+      } else if (msg.startsWith('BOARD:')) {
+        const bd = JSON.parse(msg.slice(6));
+        if (bd.used  !== undefined) usedCells = bd.used;
+        if (bd.teams && bd.teams.length) teams = bd.teams;
+        renderBoard();
       } else if (msg.startsWith('BUZZ:')) {
         const parts = msg.split(':');
-        const name  = parts[2] || parts[1].replace('G', 'Team ');
-        showBuzz(name);
+        showBuzz(parts[2] || parts[1].replace('G','Team '));
       } else if (msg === 'RESET') {
         clearBuzzBanner();
       }
@@ -240,14 +218,11 @@ function connectNtfy() {
 
 // ── INIT ──────────────────────────────────────────────────────────────────
 window.addEventListener('load', () => {
-  // QR code (small watermark in corner)
   const buzzUrl = window.location.href.replace(/[^/]*$/, '') + 'buzz.html';
   document.getElementById('qr-url-mini').textContent = buzzUrl;
   new QRCode(document.getElementById('qr-mini'), {
-    text: buzzUrl, width: 90, height: 90,
-    correctLevel: QRCode.CorrectLevel.M
+    text: buzzUrl, width: 90, height: 90, correctLevel: QRCode.CorrectLevel.M
   });
-
   renderBoard();
   connectNtfy();
 });
