@@ -7,35 +7,61 @@
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root { --bg: #0a1628; --blue: #185FA5; --green: #2d7a1f; --gold: #ffab40; }
-body { background: var(--bg); color: #e8edf4; font-family: 'Segoe UI', system-ui, sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+body { background: var(--bg); color: #e8edf4; font-family: 'Segoe UI', system-ui, sans-serif;
+  height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
 
-/* HOLDING SCREEN */
-#holding { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; gap: 20px; }
-#holding h1 { font-size: 64px; font-weight: 900; letter-spacing: 0.04em; color: #e8f2ff; text-shadow: 0 0 40px rgba(24,95,165,0.6); }
-#holding p { font-size: 22px; color: rgba(255,255,255,0.45); }
-.lock-icon { font-size: 72px; animation: float 3s ease-in-out infinite; }
-@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
-.qr-block { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 8px; }
-.qr-block canvas, .qr-block img { border-radius: 12px; border: 4px solid rgba(255,255,255,0.15); }
-.qr-label { font-size: 18px; color: rgba(255,255,255,0.5); }
-.qr-url { font-size: 15px; color: rgba(255,255,255,0.3); letter-spacing: 0.02em; }
+/* ── BOARD SCREEN ── */
+#board-screen { display: flex; flex-direction: column; height: 100%; padding: 16px 20px 12px; gap: 10px; position: relative; }
+.board-title { text-align: center; font-size: 32px; font-weight: 900; letter-spacing: 0.04em;
+  color: #e8f2ff; text-shadow: 0 0 30px rgba(24,95,165,0.55); flex-shrink: 0; }
+.board-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 7px; flex: 1; min-height: 0; }
+.col-hdr { background: #042C53; color: #c8dff4; text-align: center; padding: 10px 6px;
+  border-radius: 10px; font-size: 14px; font-weight: 700; display: flex; align-items: center;
+  justify-content: center; line-height: 1.3; }
+.cell { border-radius: 10px; text-align: center; font-size: 30px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center; }
+.cell.avail { background: var(--blue); color: #e8f2ff; text-shadow: 0 2px 6px rgba(0,0,0,0.35); }
+.cell.used  { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.18); font-size: 22px; }
 
-/* QUESTION SCREEN */
+/* score row */
+.score-row { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; flex-shrink: 0; }
+.score-chip { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px; padding: 6px 4px; text-align: center; }
+.sc-name { font-size: 11px; color: rgba(255,255,255,0.5); margin-bottom: 2px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sc-pts { font-size: 20px; font-weight: 800; }
+.sc-pts.neg { color: #e57373; }
+
+/* QR watermark bottom-right of board */
+.qr-corner { position: absolute; bottom: 54px; right: 14px;
+  display: flex; flex-direction: column; align-items: center; gap: 3px; opacity: 0.65; }
+.qr-corner canvas, .qr-corner img { border-radius: 6px; }
+.qr-corner-label { font-size: 11px; color: rgba(255,255,255,0.5); }
+.qr-corner-url   { font-size: 9px;  color: rgba(255,255,255,0.3); letter-spacing: 0.01em; }
+
+/* ── QUESTION SCREEN ── */
 #question-screen { display: none; flex-direction: column; height: 100%; padding: 40px 60px; }
 .q-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
 .q-cat { font-size: 22px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.1em; }
-.q-pts { background: var(--blue); color: #e8f2ff; border-radius: 10px; padding: 8px 24px; font-size: 28px; font-weight: 800; }
+.q-pts { background: var(--blue); color: #e8f2ff; border-radius: 10px; padding: 8px 24px;
+  font-size: 28px; font-weight: 800; }
 .q-body { flex: 1; display: flex; flex-direction: column; justify-content: center; }
-.q-text { font-size: 42px; font-weight: 700; line-height: 1.4; text-align: center; color: #ffffff; text-shadow: 0 2px 8px rgba(0,0,0,0.4); padding: 0 20px; }
+.q-text { font-size: 42px; font-weight: 700; line-height: 1.4; text-align: center;
+  color: #ffffff; text-shadow: 0 2px 8px rgba(0,0,0,0.4); padding: 0 20px; }
 
-/* ANSWER REVEAL */
-.answer-reveal { margin-top: 40px; background: rgba(45,122,31,0.2); border: 2px solid rgba(45,122,31,0.6); border-radius: 16px; padding: 24px 36px; text-align: center; animation: slideUp 0.4s ease; display: none; }
+/* answer reveal */
+.answer-reveal { margin-top: 40px; background: rgba(45,122,31,0.2);
+  border: 2px solid rgba(45,122,31,0.6); border-radius: 16px; padding: 24px 36px;
+  text-align: center; animation: slideUp 0.4s ease; display: none; }
 @keyframes slideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
 .ans-label { font-size: 16px; color: #6dbf57; text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 10px; }
-.ans-text { font-size: 36px; font-weight: 700; color: #a8e89a; line-height: 1.4; }
+.ans-text  { font-size: 36px; font-weight: 700; color: #a8e89a; line-height: 1.4; }
 
-/* BUZZ BANNER */
-#buzz-banner { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,171,64,0.15); border-top: 2px solid rgba(255,171,64,0.5); padding: 16px 40px; display: flex; align-items: center; gap: 16px; transform: translateY(100%); transition: transform 0.35s ease; }
+/* ── BUZZ BANNER ── */
+#buzz-banner { position: fixed; bottom: 0; left: 0; right: 0;
+  background: rgba(255,171,64,0.15); border-top: 2px solid rgba(255,171,64,0.5);
+  padding: 16px 40px; display: flex; align-items: center; gap: 16px;
+  transform: translateY(100%); transition: transform 0.35s ease; }
 #buzz-banner.visible { transform: translateY(0); }
 #buzz-banner .bicon { font-size: 32px; animation: ring 0.5s ease; }
 @keyframes ring { 0%,100%{transform:rotate(0)} 20%{transform:rotate(-20deg)} 60%{transform:rotate(20deg)} }
@@ -44,17 +70,19 @@ body { background: var(--bg); color: #e8edf4; font-family: 'Segoe UI', system-ui
 </head>
 <body>
 
-<div id="holding">
-  <div class="lock-icon">🔓</div>
-  <h1>Accounting Unlocked</h1>
-  <p>Waiting for host to reveal a question…</p>
-  <div class="qr-block">
-    <div id="qr-code"></div>
-    <div class="qr-label">📱 Scan to buzz in</div>
-    <div class="qr-url" id="qr-url"></div>
+<!-- BOARD SCREEN (default) -->
+<div id="board-screen">
+  <div class="board-title">🔓 Accounting Unlocked</div>
+  <div class="board-grid" id="board-grid"></div>
+  <div class="score-row" id="score-row"></div>
+  <div class="qr-corner">
+    <div id="qr-mini"></div>
+    <div class="qr-corner-label">📱 Scan to buzz in</div>
+    <div class="qr-corner-url" id="qr-url-mini"></div>
   </div>
 </div>
 
+<!-- QUESTION SCREEN -->
 <div id="question-screen">
   <div class="q-header">
     <span class="q-cat" id="q-cat"></span>
@@ -69,6 +97,7 @@ body { background: var(--bg); color: #e8edf4; font-family: 'Segoe UI', system-ui
   </div>
 </div>
 
+<!-- BUZZ BANNER -->
 <div id="buzz-banner">
   <span class="bicon">🔔</span>
   <span class="btext" id="buzz-text">Team buzzed in!</span>
@@ -79,24 +108,80 @@ body { background: var(--bg); color: #e8edf4; font-family: 'Segoe UI', system-ui
 const NTFY_TOPIC = 'accountingunlocked-agilitay-room1';
 const NTFY_URL   = 'https://ntfy.sh/' + NTFY_TOPIC;
 
+// Questions (display only needs titles — no answers shown here)
+const QUESTIONS = [
+  { title: "Accounting Basics" },
+  { title: "Debits & Credits" },
+  { title: "Financial Statements" },
+  { title: "Accounting Careers" },
+  { title: "Challenge Round" }
+];
+const POINTS = [100, 200, 300, 400, 500];
+
+let usedCells = {};
+let teams = [];
+for (let i = 1; i <= 8; i++) teams.push({ name: 'Team ' + i, score: 0 });
 let buzzTimeout = null;
 
+// ── BOARD RENDER ──────────────────────────────────────────────────────────
+function renderBoard() {
+  const grid = document.getElementById('board-grid');
+  grid.innerHTML = '';
+
+  // Category headers
+  QUESTIONS.forEach(cat => {
+    const h = document.createElement('div');
+    h.className = 'col-hdr';
+    h.textContent = cat.title;
+    grid.appendChild(h);
+  });
+
+  // Value cells
+  POINTS.forEach((pts, qi) => {
+    QUESTIONS.forEach((_, ci) => {
+      const key = ci + '-' + qi;
+      const cell = document.createElement('div');
+      if (usedCells[key]) {
+        cell.className = 'cell used';
+        cell.textContent = '✓';
+      } else {
+        cell.className = 'cell avail';
+        cell.textContent = '$' + pts;
+      }
+      grid.appendChild(cell);
+    });
+  });
+
+  // Scores
+  const sr = document.getElementById('score-row');
+  sr.innerHTML = '';
+  teams.forEach(t => {
+    const chip = document.createElement('div');
+    chip.className = 'score-chip';
+    const neg = t.score < 0;
+    chip.innerHTML = `<div class="sc-name">${t.name}</div>
+      <div class="sc-pts${neg ? ' neg' : ''}">${neg ? '-$' : '$'}${Math.abs(t.score).toLocaleString()}</div>`;
+    sr.appendChild(chip);
+  });
+}
+
+// ── SCREEN SWITCHING ─────────────────────────────────────────────────────
 function show(mode, data) {
-  const holding = document.getElementById('holding');
+  const bscreen = document.getElementById('board-screen');
   const qscreen = document.getElementById('question-screen');
   const ansDiv  = document.getElementById('answer-reveal');
 
   if (mode === 'clear') {
-    holding.style.display = 'flex';
+    bscreen.style.display = 'flex';
     qscreen.style.display = 'none';
-    ansDiv.style.display = 'none';
+    ansDiv.style.display  = 'none';
     clearBuzzBanner();
     return;
   }
-  holding.style.display = 'none';
+  bscreen.style.display = 'none';
   qscreen.style.display = 'flex';
-  document.getElementById('q-cat').textContent = data.cat || '';
-  document.getElementById('q-pts').textContent = data.pts ? '$' + data.pts : '';
+  document.getElementById('q-cat').textContent  = data.cat || '';
+  document.getElementById('q-pts').textContent  = data.pts ? '$' + data.pts : '';
   document.getElementById('q-text').textContent = data.q || '';
 
   if (mode === 'answer') {
@@ -107,6 +192,7 @@ function show(mode, data) {
   }
 }
 
+// ── BUZZ BANNER ──────────────────────────────────────────────────────────
 function showBuzz(name) {
   clearBuzzBanner();
   document.getElementById('buzz-text').textContent = name + ' buzzed in!';
@@ -119,18 +205,25 @@ function clearBuzzBanner() {
   document.getElementById('buzz-banner').classList.remove('visible');
 }
 
+// ── NTFY ──────────────────────────────────────────────────────────────────
 function connectNtfy() {
   const es = new EventSource(NTFY_URL + '/sse');
   es.onmessage = (e) => {
     try {
       const data = JSON.parse(e.data);
-      const msg = (data.message || '').trim();
+      const msg  = (data.message || '').trim();
+
       if (msg.startsWith('DISPLAY:')) {
         const payload = JSON.parse(msg.slice(8));
         show(payload.mode, payload);
+      } else if (msg.startsWith('BOARD:')) {
+        const bd = JSON.parse(msg.slice(6));
+        usedCells = bd.used || {};
+        if (bd.teams && bd.teams.length) teams = bd.teams;
+        renderBoard();
       } else if (msg.startsWith('BUZZ:')) {
         const parts = msg.split(':');
-        const name = parts[2] || parts[1].replace('G', 'Team ');
+        const name  = parts[2] || parts[1].replace('G', 'Team ');
         showBuzz(name);
       } else if (msg === 'RESET') {
         clearBuzzBanner();
@@ -140,16 +233,18 @@ function connectNtfy() {
   es.onerror = () => { es.close(); setTimeout(connectNtfy, 3000); };
 }
 
-connectNtfy();
-
-// Generate QR code pointing to buzz.html
+// ── INIT ──────────────────────────────────────────────────────────────────
 window.addEventListener('load', () => {
+  // QR code (small watermark in corner)
   const buzzUrl = window.location.href.replace(/[^/]*$/, '') + 'buzz.html';
-  document.getElementById('qr-url').textContent = buzzUrl;
-  new QRCode(document.getElementById('qr-code'), {
-    text: buzzUrl, width: 180, height: 180,
+  document.getElementById('qr-url-mini').textContent = buzzUrl;
+  new QRCode(document.getElementById('qr-mini'), {
+    text: buzzUrl, width: 90, height: 90,
     correctLevel: QRCode.CorrectLevel.M
   });
+
+  renderBoard();
+  connectNtfy();
 });
 </script>
 </body>

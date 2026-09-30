@@ -302,6 +302,8 @@ function renderBoard() {
 
   // Team grid in right panel
   renderTeamGrid();
+  // Keep display screen in sync
+  pushBoardState();
 }
 
 function renderTeamGrid() {
@@ -388,6 +390,18 @@ function clearDisplay() {
     headers: { 'Content-Type': 'text/plain' }
   }).catch(() => {});
   displayMode = 'board';
+}
+
+function pushBoardState() {
+  const payload = JSON.stringify({
+    used: usedCells,
+    teams: teams.map(t => ({ name: t.name, score: t.score }))
+  });
+  fetch(NTFY_URL, {
+    method: 'POST',
+    body: 'BOARD:' + payload,
+    headers: { 'Content-Type': 'text/plain' }
+  }).catch(() => {});
 }
 
 // ── BUZZ HANDLING ─────────────────────────────────────────────────────────
