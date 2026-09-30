@@ -166,12 +166,22 @@ function renderBoard() {
 }
 
 // ── SCREEN SWITCHING ─────────────────────────────────────────────────────
+function applyBoardSnap(data) {
+  // Extract board state bundled inside any DISPLAY message
+  if (data.used !== undefined) usedCells = data.used;
+  if (data.teams && data.teams.length) teams = data.teams;
+  renderBoard();
+}
+
 function show(mode, data) {
+  // Always refresh board state if the payload carries it
+  applyBoardSnap(data);
+
   const bscreen = document.getElementById('board-screen');
   const qscreen = document.getElementById('question-screen');
   const ansDiv  = document.getElementById('answer-reveal');
 
-  if (mode === 'clear') {
+  if (mode === 'clear' || mode === 'board') {
     bscreen.style.display = 'flex';
     qscreen.style.display = 'none';
     ansDiv.style.display  = 'none';
@@ -216,11 +226,6 @@ function connectNtfy() {
       if (msg.startsWith('DISPLAY:')) {
         const payload = JSON.parse(msg.slice(8));
         show(payload.mode, payload);
-      } else if (msg.startsWith('BOARD:')) {
-        const bd = JSON.parse(msg.slice(6));
-        usedCells = bd.used || {};
-        if (bd.teams && bd.teams.length) teams = bd.teams;
-        renderBoard();
       } else if (msg.startsWith('BUZZ:')) {
         const parts = msg.split(':');
         const name  = parts[2] || parts[1].replace('G', 'Team ');

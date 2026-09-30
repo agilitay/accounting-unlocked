@@ -302,8 +302,6 @@ function renderBoard() {
 
   // Team grid in right panel
   renderTeamGrid();
-  // Keep display screen in sync
-  pushBoardState();
 }
 
 function renderTeamGrid() {
@@ -367,9 +365,17 @@ function markUsed() {
 }
 
 // ── DISPLAY SYNC via ntfy ─────────────────────────────────────────────────
+function boardSnap() {
+  // Current board state bundled into every outgoing DISPLAY message
+  return { used: usedCells, teams: teams.map(t => ({ name: t.name, score: t.score })) };
+}
+
 function pushToDisplay(mode) {
   if (!currentQ) return;
-  const payload = JSON.stringify({ mode, q: currentQ.q, a: currentQ.a, cat: currentQ.cat, pts: currentQ.pts });
+  const payload = JSON.stringify(Object.assign(
+    { mode, q: currentQ.q, a: currentQ.a, cat: currentQ.cat, pts: currentQ.pts },
+    boardSnap()
+  ));
   fetch(NTFY_URL, {
     method: 'POST',
     body: 'DISPLAY:' + payload,
@@ -384,22 +390,22 @@ function pushToDisplay(mode) {
 }
 
 function clearDisplay() {
+  // Embed board state so display refreshes board when it returns to board view
+  const payload = JSON.stringify(Object.assign({ mode: 'clear' }, boardSnap()));
   fetch(NTFY_URL, {
     method: 'POST',
-    body: 'DISPLAY:' + JSON.stringify({ mode: 'clear' }),
+    body: 'DISPLAY:' + payload,
     headers: { 'Content-Type': 'text/plain' }
   }).catch(() => {});
   displayMode = 'board';
 }
 
 function pushBoardState() {
-  const payload = JSON.stringify({
-    used: usedCells,
-    teams: teams.map(t => ({ name: t.name, score: t.score }))
-  });
+  // Used for score-only updates (no active question on display)
+  const payload = JSON.stringify(Object.assign({ mode: 'board' }, boardSnap()));
   fetch(NTFY_URL, {
     method: 'POST',
-    body: 'BOARD:' + payload,
+    body: 'DISPLAY:' + payload,
     headers: { 'Content-Type': 'text/plain' }
   }).catch(() => {});
 }
@@ -500,6 +506,7 @@ function saveScoreEdit() {
   teams[editingTeamIdx].score = parseInt(document.getElementById('edit-score').value) || 0;
   closeScoreModal();
   renderBoard();
+  pushBoardState();
 }
 
 function resetScores() {
