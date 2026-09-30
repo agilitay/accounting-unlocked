@@ -15,6 +15,10 @@ body { background: var(--bg); color: #e8edf4; font-family: 'Segoe UI', system-ui
 #holding p { font-size: 22px; color: rgba(255,255,255,0.45); }
 .lock-icon { font-size: 72px; animation: float 3s ease-in-out infinite; }
 @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+.qr-block { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 8px; }
+.qr-block canvas, .qr-block img { border-radius: 12px; border: 4px solid rgba(255,255,255,0.15); }
+.qr-label { font-size: 18px; color: rgba(255,255,255,0.5); }
+.qr-url { font-size: 15px; color: rgba(255,255,255,0.3); letter-spacing: 0.02em; }
 
 /* QUESTION SCREEN */
 #question-screen { display: none; flex-direction: column; height: 100%; padding: 40px 60px; }
@@ -44,6 +48,11 @@ body { background: var(--bg); color: #e8edf4; font-family: 'Segoe UI', system-ui
   <div class="lock-icon">🔓</div>
   <h1>Accounting Unlocked</h1>
   <p>Waiting for host to reveal a question…</p>
+  <div class="qr-block">
+    <div id="qr-code"></div>
+    <div class="qr-label">📱 Scan to buzz in</div>
+    <div class="qr-url" id="qr-url"></div>
+  </div>
 </div>
 
 <div id="question-screen">
@@ -65,6 +74,7 @@ body { background: var(--bg); color: #e8edf4; font-family: 'Segoe UI', system-ui
   <span class="btext" id="buzz-text">Team buzzed in!</span>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 const NTFY_TOPIC = 'accountingunlocked-agilitay-room1';
 const NTFY_URL   = 'https://ntfy.sh/' + NTFY_TOPIC;
@@ -131,6 +141,16 @@ function connectNtfy() {
 }
 
 connectNtfy();
+
+// Generate QR code pointing to buzz.html
+window.addEventListener('load', () => {
+  const buzzUrl = window.location.href.replace(/[^/]*$/, '') + 'buzz.html';
+  document.getElementById('qr-url').textContent = buzzUrl;
+  new QRCode(document.getElementById('qr-code'), {
+    text: buzzUrl, width: 180, height: 180,
+    correctLevel: QRCode.CorrectLevel.M
+  });
+});
 </script>
 </body>
 </html>
